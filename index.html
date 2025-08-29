@@ -225,22 +225,87 @@ async function handleLoadAll(){
 }
 
 // ---------------------------
-// Attach events
 // ---------------------------
-$("btnAnalyze").addEventListener("click",()=>{ $("analysis_area").textContent="Analisis dijalankan... (Demo)"; });
-$("btnSaveLocal").addEventListener("click",()=>{
-  const data = {screening:screeningPanel, id:idPanel, populations};
-  localStorage.setItem("antibody_demo", JSON.stringify(data));
-  alert("Tersimpan di localStorage.");
-});
-$("btnLoadLocal").addEventListener("click",()=>{
-  const data = JSON.parse(localStorage.getItem("antibody_demo")||"{}");
-  if(data.screening) screeningPanel=data.screening;
-  if(data.id) idPanel=data.id;
-  if(data.populations) populations=data.populations;
-  renderScreeningTable(); renderIdTable(); renderPopSelect();
-});
-$("btnPrint").addEventListener("click",()=>{ window.print(); });
+// Helper untuk analisis reaksi
+// ---------------------------
+function parseReaction(v){ return ["w","1+","2+","3+","4+"].includes(v)?true:false; }
+
+function analyzeAntibodies(){
+  if(!screeningPanel || !idPanel || !populations) return;
+  const popFreq = populations[chosenPopulationKey].antigens || {};
+  const allPanels = [{panel:screeningPanel, type:"Screening"},{panel:idPanel, type:"ID"}];
+
+  let antigenStatus = {}; // {D:{ruleIn:true, ruleOut:false, prob:0.995}, ...}
+
+  // Inisialisasi status
+  const allAntigens = Object.keys(popFreq);
+  allAntigens.forEach(a=>{
+    antigenStatus[a]={ruleIn:false, ruleOut:false, freq:popFreq[a].positive||0};
+  });
+
+  // Iterasi tiap panel & sel
+  allPanels.forEach(pObj=>{
+    const panel = pObj.panel;
+    panel.cells.forEach((c,idx)=>{
+      const sel = document.querySelector(`select[data-panel="${pObj.type.toLowerCase()}"][data-index="${idx}"]`);
+      if(!sel) return;
+      const reactive = parseReaction(sel.value);
+      Object.keys(c.antigens||{}).forEach(a=>{
+        const present = normalizeAnt(c.antigens[a])==="+"; // antigen ada di sel
+        if(reactive){
+          // jika sel reaktif dan antigen ada → Rule-in
+          if(present) antigenStatus[a].ruleIn = true;
+        } else {
+          // jika sel non-reaktif dan antigen ada → Rule-out
+          if(present) antigenStatus[a].ruleOut = true;
+        }
+      });
+    });
+  });
+
+  // Hitung probabilitas kombinasi antibodi (binomial)
+  // Sederhana: P = product(freq) untuk antigen Rule-in
+  let combProb = 1;
+  Object.keys(antigenStatus).forEach(a=>{
+    if(antigenStatus[a].ruleIn){
+      combProb *= antigenStatus[a].freq;
+    } else if(antigenStatus[a].ruleOut){
+      combProb *= (1 - antigenStatus[a].freq);
+    }
+  });
+
+  // Render hasil
+  const area = $("analysis_area");
+  area.innerHTML = "";
+  const table = document.createElement("table");
+  table.innerHTML = "<thead><tr><th>Antigen</th><th>Rule-in</th><th>Rule-out</th><th>Pop freq</th></tr></thead>";
+  const tbody = document.createElement("tbody");
+  Object.keys(antigenStatus).forEach(a=>{
+    const st = antigenStatus[a];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${a}</td>
+      <td>${st.ruleIn?"✔":"-"}</td>
+      <td>${st.ruleOut?"✔":"-"}</td>
+      <td>${fmtPct(st.freq)}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  area.appendChild(table);
+
+  // Ringkasan kombinasi antibodi
+  const summary = document.createElement("div");
+  summary.style.marginTop="12px";
+  summary.innerHTML = `<strong>Probabilitas kombinasi antibodi (Rule-in/Rule-out) ≈ ${fmtPct(combProb)}</strong>`;
+  area.appendChild(summary);
+
+  // Update summary_area untuk print
+  $("summary_area").innerHTML = area.innerHTML;
+}
+
+// ---------------------------
+// Ganti event analyze
+// ---------------------------
+$("btnAnalyze").addEventListener("click",()=>{ analyzeAntibodies(); });
 
 // ---------------------------
 // On load
@@ -250,6 +315,7 @@ handleLoadAll();
 
 </body>
 </html>
+
 
 
 
