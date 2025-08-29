@@ -213,10 +213,10 @@ async function handleLoadAll(){
     screeningPanel = await loadJsonFromUrl("https://raw.githubusercontent.com/rujukanutdp/IDA/refs/heads/main/screening_panel.json");
   }catch(e){ alert("Gagal load screening panel dari GitHub"); }
   try{
-    idPanel = await loadJsonFromUrl("https://https://raw.githubusercontent.com/rujukanutdp/IDA/refs/heads/main/id_panel.json");
+    idPanel = await loadJsonFromUrl("https://raw.githubusercontent.com/rujukanutdp/IDA/refs/heads/main/id_panel.json");
   }catch(e){ alert("Gagal load ID panel dari GitHub"); }
   try{
-    const popJson = await loadJsonFromUrl("https://https://raw.githubusercontent.com/rujukanutdp/IDA/refs/heads/main/antigen_population_indonesia.json");
+    const popJson = await loadJsonFromUrl("https://raw.githubusercontent.com/rujukanutdp/IDA/refs/heads/main/antigen_population_indonesia.json");
     populations = {[popJson.population]: popJson};
   }catch(e){ alert("Gagal load populasi dari GitHub"); populations={}; }
   renderScreeningTable();
@@ -250,4 +250,5 @@ handleLoadAll();
 
 </body>
 </html>
+
 
