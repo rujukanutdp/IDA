@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel & Populasi Antigen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h2 { margin-top: 30px; }
+    select { margin: 10px; padding: 5px; }
+    table { border-collapse: collapse; margin-top: 10px; width: 100%; max-width: 800px; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; }
+    th { background: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h1>Data Panel & Populasi Antigen</h1>
+
+  <label for="panelSelect">Pilih Panel:</label>
+  <select id="panelSelect">
+    <option value="screening">Screening Panel</option>
+    <option value="id">Identification Panel</option>
+  </select>
+
+  <label for="populationSelect">Pilih Populasi:</label>
+  <select id="populationSelect">
+    <option value="indonesia">Indonesia</option>
+    <option value="asia">Asia Timur</option>
+  </select>
+
+  <h2>Panel</h2>
+  <div id="panelTable"></div>
+
+  <h2>Populasi</h2>
+  <div id="populationTable"></div>
+
+  <script>
+    const panelFiles = {
+      screening: "screening_panel.json",
+      id: "id_panel.json"
+    };
+
+    const populationFiles = {
+      indonesia: "antigen_population_indonesia.json",
+      asia: "antigen_population_asia.json"
+    };
+
+    // render tabel panel
+    async function loadPanel(type) {
+      const file = panelFiles[type];
+      try {
+        const res = await fetch(file);
+        const data = await res.json();
+        let html = "<table><tr><th>Cell</th>";
+        // ambil daftar antigen dari cell pertama
+        const antigens = Object.keys(data.cells[0].antigens);
+        antigens.forEach(a => html += `<th>${a}</th>`);
+        html += "</tr>";
+
+        data.cells.forEach(cell => {
+          html += `<tr><td>${cell.cell}</td>`;
+          antigens.forEach(a => {
+            html += `<td>${cell.antigens[a]}</td>`;
+          });
+          html += "</tr>";
+        });
+
+        html += "</table>";
+        document.getElementById("panelTable").innerHTML = html;
+      } catch (err) {
+        document.getElementById("panelTable").innerHTML = "⚠️ Gagal load panel.";
+      }
+    }
+
+    // render tabel populasi
+    async function loadPopulation(type) {
+      const file = populationFiles[type];
+      try {
+        const res = await fetch(file);
+        const data = await res.json();
+        let html = `<p><b>Populasi:</b> ${data.population} <br><b>Sumber:</b> ${data.source}</p>`;
+        html += "<table><tr><th>Antigen</th><th>Positif</th><th>Negatif</th></tr>";
+        Object.entries(data.antigens).forEach(([antigen, freq]) => {
+          html += `<tr><td>${antigen}</td><td>${(freq.positive*100).toFixed(1)}%</td><td>${(freq.negative*100).toFixed(1)}%</td></tr>`;
+        });
+        html += "</table>";
+        document.getElementById("populationTable").innerHTML = html;
+      } catch (err) {
+        document.getElementById("populationTable").innerHTML = "⚠️ Gagal load populasi.";
+      }
+    }
+
+    // event listener
+    document.getElementById("panelSelect").addEventListener("change", e => {
+      loadPanel(e.target.value);
+    });
+
+    document.getElementById("populationSelect").addEventListener("change", e => {
+      loadPopulation(e.target.value);
+    });
+
+    // load default
+    loadPanel("screening");
+    loadPopulation("indonesia");
+  </script>
+</body>
+</html>
