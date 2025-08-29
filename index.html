@@ -1,107 +1,252 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Panel & Populasi Antigen</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h2 { margin-top: 30px; }
-    select { margin: 10px; padding: 5px; }
-    table { border-collapse: collapse; margin-top: 10px; width: 100%; max-width: 800px; }
-    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; }
-    th { background: #f4f4f4; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Antibody Identification Tool (Demo)</title>
+<style>
+:root { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #0f172a; }
+body { margin: 16px; background:#f7fafc; }
+h1 { margin: 0 0 8px; font-size: 20px; }
+h2 { margin: 14px 0 8px; font-size: 16px; }
+.card { background:white; border-radius:10px; padding:12px; box-shadow: 0 1px 4px rgba(2,6,23,0.06); margin-bottom:12px; }
+label { display:block; margin-bottom:6px; font-size:13px; }
+input[type="text"], input[type="date"], input[type="number"], select, textarea { width:100%; padding:6px 8px; border:1px solid #e6e9ee; border-radius:6px; box-sizing:border-box; font-size:14px; }
+.grid { display:grid; gap:10px; }
+.grid.cols-3 { grid-template-columns: repeat(3,1fr); }
+.grid.cols-2 { grid-template-columns: repeat(2,1fr); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th, td { border:1px solid #e6e9ee; padding:6px; text-align:center; }
+th { background:#f1f5f9; font-weight:600; font-size:13px; }
+.btn { display:inline-block; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; margin-right:6px; font-size:13px; }
+.btn.primary { background:#0ea5a4; color:white; border-color:transparent; }
+.small { font-size:12px; color:#475569; }
+.badge { display:inline-block; padding:4px 7px; border-radius:999px; background:#f8fafc; border:1px solid #e2e8f0; font-size:12px; }
+.warn { background:#fff7ed; border-color:#fed7aa; }
+.conflict { background:#fff1f2; border-color:#fecaca; }
+pre { background:#0f172a; color:#e6eef6; padding:8px; border-radius:6px; overflow:auto; font-size:12px; }
+@media print { .no-print { display:none !important; } body { margin:0; } }
+</style>
 </head>
 <body>
-  <h1>Data Panel & Populasi Antigen</h1>
 
-  <label for="panelSelect">Pilih Panel:</label>
-  <select id="panelSelect">
-    <option value="screening">Screening Panel</option>
-    <option value="id">Identification Panel</option>
-  </select>
+<h1>🧪 Antibody Identification Tool — Demo</h1>
+<p class="small">Format reaksi: <strong>- / w / 1+ / 2+ / 3+ / 4+</strong>. Data panel & populasi langsung dari GitHub.</p>
 
-  <label for="populationSelect">Pilih Populasi:</label>
-  <select id="populationSelect">
-    <option value="indonesia">Indonesia</option>
-    <option value="asia">Asia Timur</option>
-  </select>
+<!-- 1) Data Pasien -->
+<div class="card">
+<h2>1) Data Pasien</h2>
+<div class="grid cols-3">
+  <label>Nama<input id="p_name" type="text" placeholder="Nama pasien"></label>
+  <label>Umur (tahun)<input id="p_age" type="number" min="0" placeholder="Umur"></label>
+  <label>Rumah Sakit<input id="p_rs" type="text" placeholder="Nama RS"></label>
+  <label>No. MR<input id="p_mrn" type="text" placeholder="No. MRN"></label>
+  <label>Diagnosa<input id="p_diag" type="text" placeholder="Diagnosa singkat"></label>
+  <label>Dokter yang merawat<input id="p_doc" type="text" placeholder="Nama dokter"></label>
+</div>
+</div>
 
-  <h2>Panel</h2>
-  <div id="panelTable"></div>
+<!-- 2) Load JSON panels -->
+<div class="card">
+<h2>2) Load Panel & populasi antigen</h2>
+<p class="small">Data akan langsung di-load dari repository GitHub.</p>
+</div>
 
-  <h2>Populasi</h2>
-  <div id="populationTable"></div>
+<!-- 3) Screening 3-Cell display & reaction input -->
+<div class="card" id="screening_card">
+<h2>3) Screening 3-Cell</h2>
+<div id="screening_meta" class="small"></div>
+<div style="overflow:auto; margin-top:8px;">
+<table id="screening_table">
+<thead><tr><th>Cell</th><th>Antigen profile</th><th>Reaction</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
 
-  <script>
-    const panelFiles = {
-      screening: "screening_panel.json",
-      id: "id_panel.json"
-    };
+<!-- 4) Panel 11-Cell display & reaction input -->
+<div class="card" id="id_card">
+<h2>4) Panel Identifikasi (11-Cell)</h2>
+<div id="id_meta" class="small"></div>
+<div style="overflow:auto; margin-top:8px;">
+<table id="id_table">
+<thead><tr><th>Cell</th><th>Antigen profile</th><th>Reaction</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
 
-    const populationFiles = {
-      indonesia: "antigen_population_indonesia.json",
-      asia: "antigen_population_asia.json"
-    };
+<!-- 5) Frekuensi antigen & populasi -->
+<div class="card">
+<h2>5) Frekuensi Antigen (pilih populasi)</h2>
+<div class="grid cols-2">
+  <div>
+    <label>Populasi terpilih: <span id="pop_info" class="badge">—</span></label>
+    <div class="small" id="pop_source"></div>
+  </div>
+  <div>
+    <label>Opsi: edit frekuensi (p) langsung</label>
+    <div id="freq_editor" style="max-height:200px; overflow:auto;"></div>
+  </div>
+</div>
+</div>
 
-    // render tabel panel
-    async function loadPanel(type) {
-      const file = panelFiles[type];
-      try {
-        const res = await fetch(file);
-        const data = await res.json();
-        let html = "<table><tr><th>Cell</th>";
-        // ambil daftar antigen dari cell pertama
-        const antigens = Object.keys(data.cells[0].antigens);
-        antigens.forEach(a => html += `<th>${a}</th>`);
-        html += "</tr>";
+<!-- 6) Analysis area -->
+<div class="card">
+<h2>6) Analisis (Rule-in/out + Binomial)</h2>
+<div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+  <button class="btn primary" id="btnAnalyze">🔍 Proses Analisis</button>
+  <button class="btn" id="btnSaveLocal">💾 Simpan (local)</button>
+  <button class="btn" id="btnLoadLocal">📂 Muat (local)</button>
+  <button class="btn" id="btnPrint">🖨️ Print Ringkasan</button>
+</div>
+<div id="analysis_area"></div>
+</div>
 
-        data.cells.forEach(cell => {
-          html += `<tr><td>${cell.cell}</td>`;
-          antigens.forEach(a => {
-            html += `<td>${cell.antigens[a]}</td>`;
-          });
-          html += "</tr>";
-        });
+<!-- 7) Ringkasan print -->
+<div class="card" id="summary_card">
+<h2>7) Ringkasan untuk Cetak</h2>
+<div id="summary_area">Belum ada ringkasan. Tekan <strong>Proses Analisis</strong>.</div>
+</div>
 
-        html += "</table>";
-        document.getElementById("panelTable").innerHTML = html;
-      } catch (err) {
-        document.getElementById("panelTable").innerHTML = "⚠️ Gagal load panel.";
-      }
-    }
+<script>
+// ---------------------------
+// Helper & default demo data
+// ---------------------------
+const REACTION_SCALE = ["-", "w", "1+", "2+", "3+", "4+"];
+function isReactive(r){ return r && r!=="-" && r!=="0"; }
+function fmtPct(x){ return isFinite(x)?(x*100).toFixed(x<0.01?2:1)+"%":"-"; }
+function normalizeAnt(v){
+  if(typeof v==="boolean") return v?"+":"-";
+  if(v===true) return "+";
+  if(v===false) return "-";
+  if(typeof v==="string"){
+    if(v.trim()==="+"||v.trim()==="-") return v.trim();
+    if(v.toLowerCase()==="true") return "+";
+    if(v.toLowerCase()==="false") return "-";
+  }
+  return String(v||"-");
+}
 
-    // render tabel populasi
-    async function loadPopulation(type) {
-      const file = populationFiles[type];
-      try {
-        const res = await fetch(file);
-        const data = await res.json();
-        let html = `<p><b>Populasi:</b> ${data.population} <br><b>Sumber:</b> ${data.source}</p>`;
-        html += "<table><tr><th>Antigen</th><th>Positif</th><th>Negatif</th></tr>";
-        Object.entries(data.antigens).forEach(([antigen, freq]) => {
-          html += `<tr><td>${antigen}</td><td>${(freq.positive*100).toFixed(1)}%</td><td>${(freq.negative*100).toFixed(1)}%</td></tr>`;
-        });
-        html += "</table>";
-        document.getElementById("populationTable").innerHTML = html;
-      } catch (err) {
-        document.getElementById("populationTable").innerHTML = "⚠️ Gagal load populasi.";
-      }
-    }
+// In-memory loaded objects
+let screeningPanel=null, idPanel=null, populations=null, chosenPopulationKey=null;
 
-    // event listener
-    document.getElementById("panelSelect").addEventListener("change", e => {
-      loadPanel(e.target.value);
-    });
+// ---------------------------
+// Load JSON from URL
+// ---------------------------
+async function loadJsonFromUrl(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("Gagal fetch: "+res.status);
+  return await res.json();
+}
 
-    document.getElementById("populationSelect").addEventListener("change", e => {
-      loadPopulation(e.target.value);
-    });
+// ---------------------------
+// Render tables
+// ---------------------------
+function renderScreeningTable(){
+  const tbody = $("screening_table").querySelector("tbody");
+  tbody.innerHTML="";
+  $("screening_meta").textContent = `Lot: ${screeningPanel.lot || "-"} — Prod: ${screeningPanel.manufacturer || "-"}`;
+  screeningPanel.cells.forEach((c,idx)=>{
+    const tr = document.createElement("tr");
+    const antProfile = Object.keys(c.antigens||{}).map(a=>`${a}:${normalizeAnt(c.antigens[a])}`).join(" ");
+    tr.innerHTML = `<td>${c.cell}</td><td style="text-align:left;font-family:monospace;font-size:12px">${antProfile}</td>
+      <td><select data-panel="screening" data-index="${idx}">${REACTION_SCALE.map(v=>`<option ${c.reaction===v?"selected":""} value="${v}">${v}</option>`).join("")}</select></td>`;
+    tbody.appendChild(tr);
+  });
+}
 
-    // load default
-    loadPanel("screening");
-    loadPopulation("indonesia");
-  </script>
+function renderIdTable(){
+  const tbody = $("id_table").querySelector("tbody");
+  tbody.innerHTML="";
+  $("id_meta").textContent = `Lot: ${idPanel.lot || "-"} — Prod: ${idPanel.manufacturer || "-"}`;
+  idPanel.cells.forEach((c,idx)=>{
+    const tr = document.createElement("tr");
+    const antProfile = Object.keys(c.antigens||{}).map(a=>`${a}:${normalizeAnt(c.antigens[a])}`).join(" ");
+    tr.innerHTML = `<td>${c.cell}</td><td style="text-align:left;font-family:monospace;font-size:12px">${antProfile}</td>
+      <td><select data-panel="id" data-index="${idx}">${REACTION_SCALE.map(v=>`<option ${c.reaction===v?"selected":""} value="${v}">${v}</option>`).join("")}</select></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ---------------------------
+// Render populasi frekuensi
+// ---------------------------
+function renderPopSelect(){
+  if(!populations) return;
+  const keys = Object.keys(populations);
+  chosenPopulationKey = keys[0];
+  $("pop_info").textContent = chosenPopulationKey;
+  $("pop_source").textContent = populations[chosenPopulationKey].source || "-";
+  renderFreqEditor();
+}
+
+function renderFreqEditor(){
+  const editor = $("freq_editor");
+  editor.innerHTML="";
+  if(!chosenPopulationKey) return;
+  const freqObj = populations[chosenPopulationKey].frequencies || {};
+  for(const antigen in freqObj){
+    const row = document.createElement("div");
+    row.style.display="flex";
+    row.style.gap="8px";
+    row.style.marginBottom="4px";
+    const lbl = document.createElement("span"); lbl.textContent=antigen; lbl.style.width="40px";
+    const inp = document.createElement("input"); inp.type="number"; inp.min="0"; inp.max="1"; inp.step="0.01";
+    inp.value = freqObj[antigen]; inp.dataset.antigen=antigen;
+    inp.addEventListener("change",()=>{ freqObj[antigen]=parseFloat(inp.value)||0; });
+    row.appendChild(lbl); row.appendChild(inp);
+    editor.appendChild(row);
+  }
+}
+
+// ---------------------------
+// DOM helpers
+// ---------------------------
+function $(id){ return document.getElementById(id); }
+
+// ---------------------------
+// Main Load All
+// ---------------------------
+async function handleLoadAll(){
+  try{
+    screeningPanel = await loadJsonFromUrl("https://raw.githubusercontent.com/username/repo/main/screening_panel.json");
+  }catch(e){ alert("Gagal load screening panel dari GitHub"); }
+  try{
+    idPanel = await loadJsonFromUrl("https://raw.githubusercontent.com/username/repo/main/id_panel.json");
+  }catch(e){ alert("Gagal load ID panel dari GitHub"); }
+  try{
+    const popJson = await loadJsonFromUrl("https://raw.githubusercontent.com/username/repo/main/antigen_population_indonesia.json");
+    populations = {[popJson.population]: popJson};
+  }catch(e){ alert("Gagal load populasi dari GitHub"); populations={}; }
+  renderScreeningTable();
+  renderIdTable();
+  renderPopSelect();
+}
+
+// ---------------------------
+// Attach events
+// ---------------------------
+$("btnAnalyze").addEventListener("click",()=>{ $("analysis_area").textContent="Analisis dijalankan... (Demo)"; });
+$("btnSaveLocal").addEventListener("click",()=>{
+  const data = {screening:screeningPanel, id:idPanel, populations};
+  localStorage.setItem("antibody_demo", JSON.stringify(data));
+  alert("Tersimpan di localStorage.");
+});
+$("btnLoadLocal").addEventListener("click",()=>{
+  const data = JSON.parse(localStorage.getItem("antibody_demo")||"{}");
+  if(data.screening) screeningPanel=data.screening;
+  if(data.id) idPanel=data.id;
+  if(data.populations) populations=data.populations;
+  renderScreeningTable(); renderIdTable(); renderPopSelect();
+});
+$("btnPrint").addEventListener("click",()=>{ window.print(); });
+
+// ---------------------------
+// On load
+// ---------------------------
+handleLoadAll();
+</script>
+
 </body>
 </html>
